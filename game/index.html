@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SUNCOAST: HEATLINE — an original open-world crime game</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0e1420;
+    font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; }
+  #gameCanvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hidden { display: none !important; }
+  .panel { position: fixed; background: rgba(10, 14, 24, 0.72); border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(3px); z-index: 5; }
+  /* Top-left: mission card */
+  #missionPanel { top: 12px; left: 12px; width: 340px; }
+  #hudMissionTitle { font-size: 15px; font-weight: 800; color: #ffd166; letter-spacing: 0.5px; }
+  #hudMissionObj { font-size: 13px; margin-top: 3px; line-height: 1.35; }
+  #hudMissionNext { font-size: 11px; color: #9fb3c8; margin-top: 3px; }
+  #hudMissionTimer { font-size: 12px; color: #7bdff2; margin-top: 2px; }
+  #hudMissionDist { font-size: 12px; color: #ffd166; margin-top: 2px; font-weight: 700; }
+  /* Top-right: money, rep, health, wanted, police */
+  #statusPanel { top: 12px; right: 12px; width: 260px; text-align: right; }
+  #hudMoney { font-size: 26px; font-weight: 800; color: #7cf29c; }
+  #hudWanted { font-size: 18px; color: #ffd166; letter-spacing: 2px; margin-top: 2px; }
+  #hudPolice { font-size: 11px; color: #ff8fa3; margin-top: 3px; }
+  #hudHealth, #hudRep { font-size: 12px; color: #dfe6ee; }
+  .barOuter { height: 6px; background: rgba(255,255,255,0.18); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .barFill { height: 100%; background: #ffd166; border-radius: 3px; }
+  /* Bottom-left: radio + weapons + abilities */
+  #bottomLeft { left: 12px; bottom: 12px; width: 300px; }
+  #hudRadio { font-size: 13px; font-weight: 700; color: #4ecdc4; }
+  #hudWeapons { margin-top: 6px; }
+  .wslot { display: inline-block; font-size: 11px; padding: 3px 7px; margin-right: 4px;
+    background: rgba(255,255,255,0.1); border-radius: 5px; color: #c8d3e0; }
+  .wslot.active { background: #ffd166; color: #111; font-weight: 800; }
+  #hudAbilities { margin-top: 8px; }
+  .ability { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 2px 0; color: #9fb3c8; }
+  .ability.ready { color: #fff; }
+  .aport { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center;
+    justify-content: center; font-weight: 800; color: #111; font-size: 11px; flex: none; }
+  .akey { font-weight: 800; color: #ffd166; border: 1px solid #ffd166; border-radius: 3px; padding: 0 4px; }
+  .aname { font-weight: 700; }
+  .acd { margin-left: auto; color: #7bdff2; }
+  /* Bottom-right: minimap + district + clock */
+  #mapPanel { right: 12px; bottom: 12px; width: 220px; text-align: center; }
+  #minimap { width: 180px; height: 180px; border-radius: 50%; display: block; margin: 0 auto; }
+  #hudDistrict { font-size: 12px; font-weight: 700; color: #ffd166; margin-top: 6px; }
+  #hudClock { font-size: 11px; color: #9fb3c8; margin-top: 2px; }
+  /* Bottom-centre: speedometer */
+  #speedPanel { left: 50%; transform: translateX(-50%); bottom: 12px; text-align: center; width: 220px; }
+  #hudSpeed { font-size: 44px; font-weight: 800; line-height: 1; }
+  #hudSpeedUnit { font-size: 12px; color: #9fb3c8; }
+  #hudFuel, #hudCondition { font-size: 11px; color: #dfe6ee; display: inline-block; margin: 2px 6px 0; }
+  .fuelFill { height: 100%; background: #4ecdc4; border-radius: 3px; }
+  .fuelFill.low { background: #ff5a5a; }
+  /* Dialogue box, bottom-centre above the speedometer */
+  #dialogBox { left: 50%; transform: translateX(-50%); bottom: 150px; width: 460px;
+    display: flex; gap: 10px; align-items: flex-start; }
+  #dialogPortrait { width: 44px; height: 44px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; color: #111; }
+  #dialogName { font-size: 13px; font-weight: 800; }
+  #dialogRole { font-size: 10px; color: #9fb3c8; letter-spacing: 1px; }
+  #dialogText { font-size: 13px; line-height: 1.4; margin-top: 2px; font-style: italic; }
+  /* Toast */
+  #toast { left: 50%; transform: translateX(-50%); top: 70px; font-size: 14px; font-weight: 800;
+    color: #ffd166; background: rgba(10,14,24,0.8); padding: 8px 16px; border-radius: 8px; z-index: 6; }
+  /* Score popups */
+  #popupLayer { position: fixed; inset: 0; pointer-events: none; z-index: 7; }
+  .scorePopup { position: absolute; font-size: 20px; font-weight: 800; color: #ffd166;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.8); animation: poprise 1.6s ease-out forwards; }
+  .scorePopup.near { color: #7bdff2; }
+  .scorePopup.drift { color: #ff8fa3; }
+  @keyframes poprise { 0% { opacity: 0; transform: translateY(10px) scale(0.9); }
+    15% { opacity: 1; transform: translateY(0) scale(1.05); }
+    100% { opacity: 0; transform: translateY(-46px) scale(1); } }
+  /* Start / pause / game-over cards */
+  .card { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(8, 10, 18, 0.55); z-index: 10; }
+  .cardInner { width: 560px; max-width: 92vw; background: rgba(12, 17, 28, 0.94);
+    border: 1px solid rgba(255,209,102,0.4); border-radius: 16px; padding: 28px 32px; text-align: center; }
+  .cardInner h1 { font-size: 40px; letter-spacing: 2px; color: #ffd166; }
+  .cardInner h1 span { color: #ff5a5a; }
+  .cardInner h2 { font-size: 15px; color: #7bdff2; margin: 6px 0 14px; font-weight: 600; }
+  .cardInner p { font-size: 13px; line-height: 1.55; color: #dfe6ee; }
+  .cardInner .controls { font-size: 12px; color: #9fb3c8; margin-top: 12px; line-height: 1.7; }
+  .cardInner button { margin-top: 18px; padding: 12px 28px; font-size: 16px; font-weight: 800;
+    background: #ffd166; color: #111; border: none; border-radius: 8px; cursor: pointer; }
+  .cardInner button.secondary { background: transparent; color: #ffd166; border: 1px solid #ffd166; margin-left: 8px; }
+  .cardInner button:hover { filter: brightness(1.1); }
+  .statRow { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08); color: #dfe6ee; }
+  .statRow b { color: #ffd166; }
+  #crosshair { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    font-size: 18px; color: rgba(255,255,255,0.85); z-index: 4; pointer-events: none;
+    text-shadow: 0 0 4px #000; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="crosshair">+</div>
+
+<div id="missionPanel" class="panel">
+  <div id="hudMissionTitle">JOB 1/8 • A FAVOR IN THE HEAT</div>
+  <div id="hudMissionObj">Meet the fixer at the glowing marker.</div>
+  <div id="hudMissionNext">NEXT: LOOSE CARGO</div>
+  <div id="hudMissionTimer">⏱ 0s / PAR 60s</div>
+  <div id="hudMissionDist">MARKER 0m</div>
+</div>
+
+<div id="statusPanel" class="panel">
+  <div id="hudMoney">$1,250</div>
+  <div id="hudHealth">HP 100</div>
+  <div id="hudRep">REP 0</div>
+  <div class="barOuter"><div id="hudRepBar" class="barFill" style="width:0%"></div></div>
+  <div id="hudWanted">☆☆☆☆☆</div>
+  <div id="hudPolice">POLICE: CLEAR</div>
+</div>
+
+<div id="bottomLeft" class="panel">
+  <div id="hudRadio">SHORELINE 96.7 • Sunset Run</div>
+  <div id="hudWeapons"></div>
+  <div id="hudAbilities"></div>
+</div>
+
+<div id="mapPanel" class="panel">
+  <canvas id="minimap" width="180" height="180"></canvas>
+  <div id="hudDistrict">DOWNTOWN • Central Ave</div>
+  <div id="hudClock">GOLDEN • 0 JOBS DONE</div>
+</div>
+
+<div id="speedPanel" class="panel">
+  <div><span id="hudSpeed">0</span> <span id="hudSpeedUnit">KM/H</span></div>
+  <div><span id="hudFuel">FUEL 100%</span><span id="hudCondition">COND 100%</span></div>
+  <div class="barOuter"><div id="hudFuelBar" class="fuelFill" style="width:100%"></div></div>
+</div>
+
+<div id="dialogBox" class="panel hidden">
+  <div id="dialogPortrait">R</div>
+  <div><div><span id="dialogName">Rae</span> <span id="dialogRole">FIXER</span></div>
+  <div id="dialogText"></div></div>
+</div>
+
+<div id="toast" class="hidden"></div>
+<div id="popupLayer"></div>
+
+<div id="startCard" class="card">
+  <div class="cardInner">
+    <h1>SUNCOAST <span>HEATLINE</span></h1>
+    <h2>An original open-world crime game — coastal city, sunset, eight contracts</h2>
+    <p>You are a driver for hire in Suncoast. The fixer Rae has a package, the lookout
+    Sable watches the roofs, and Marlo keeps the engine running. Run eight jobs, lose
+    the heat, and end the loop with $22,450.</p>
+    <p class="controls">WASD / arrows — move &amp; drive &nbsp;•&nbsp; E — enter / exit car (steal it, gain heat)<br>
+    Click — shoot &nbsp;•&nbsp; 1-4 — weapons &nbsp;•&nbsp; Space — handbrake drift<br>
+    Z / X / C — crew abilities (Rae / Sable / Marlo) &nbsp;•&nbsp; R — radio &nbsp;•&nbsp; T — time of day<br>
+    P / Esc — pause &nbsp;•&nbsp; M — mute</p>
+    <button id="btnStart">ENTER THE CITY</button>
+    <button id="btnContinue" class="secondary hidden">CONTINUE SAVE</button>
+  </div>
+</div>
+
+<div id="pauseMenu" class="card hidden">
+  <div class="cardInner">
+    <h1>PAUSED</h1>
+    <h2>Suncoast waits. The heat does not.</h2>
+    <div class="statRow"><span>Money</span><b id="statMoney">$1,250</b></div>
+    <div class="statRow"><span>Story</span><b id="statJobs">0 jobs done</b></div>
+    <div class="statRow"><span>Targets down</span><b id="statKills">0</b></div>
+    <div class="statRow"><span>Drift earnings</span><b id="statDrift">$0</b></div>
+    <div class="statRow"><span>REP</span><b id="statRep">REP 0</b></div>
+    <div class="statRow"><span>Fuel</span><b id="statFuel">FUEL 100%</b></div>
+    <div class="statRow"><span>Wanted</span><b id="statWanted">☆☆☆☆☆</b></div>
+    <div class="statRow"><span>Health</span><b id="statHealth">100%</b></div>
+    <button id="btnResume">RESUME</button>
+    <button id="btnSave" class="secondary">SAVE</button>
+    <button id="btnLoad" class="secondary">LOAD</button>
+    <button id="btnRestart" class="secondary">RESTART</button>
+  </div>
+</div>
+
+<div id="gameOverCard" class="card hidden">
+  <div class="cardInner">
+    <h1>WASTED</h1>
+    <h2>The run ends here — Suncoast keeps the money.</h2>
+    <button id="btnRespawn">TRY AGAIN</button>
+  </div>
+</div>
+
+<script type="module" src="./src/core/main.js"></script>
+</body>
+</html>
