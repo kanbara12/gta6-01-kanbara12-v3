@@ -5,7 +5,7 @@
 
 import { buildHeroCar } from './models.js';
 
-export const HERO_SPAWN = { x: 8.5, z: 8.5, yaw: Math.PI / 2 };
+export const HERO_SPAWN = { x: -36, z: 2.7, yaw: Math.PI / 2 };
 
 export function spawnHeroCar(G) {
   const car = buildHeroCar();

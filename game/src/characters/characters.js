@@ -39,7 +39,11 @@ export function buildPlayer(G) {
   gun.position.set(0.42, 1.15, 0.3);
   p.add(gun);
   p.traverse((m) => { if (m.isMesh) m.castShadow = true; });
-  p.position.set(8.5, 0, 12);
+  // Parked start: on foot beside the HEATLINE GT on the eastbound lane,
+  // 44 m west of the fixer marker — the first job is a real trip, never
+  // a free payout at spawn (the old (8.5, 12) spawn sat inside the
+  // 5 m meet radius and paid $2,500 before the player moved).
+  p.position.set(-36, 0, 5.5);
   p.rotation.y = Math.PI / 2;
   G.scene.add(p);
   G.player = p;
